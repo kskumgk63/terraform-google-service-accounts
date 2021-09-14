@@ -37,6 +37,12 @@ variable "project_roles" {
   default     = []
 }
 
+variable "workload_identity_users" {
+  type        = list(string)
+  description = "Common workload identity users to apply to all service accounts, project=>kubernetes serviceaccount as elements."
+  default     = []
+}
+
 variable "grant_billing_role" {
   type        = bool
   description = "Grant billing user role."

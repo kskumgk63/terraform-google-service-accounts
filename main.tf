@@ -31,6 +31,14 @@ locals {
       role = pair[1]
     }]
   )
+  name_workload_identity_users_pairs = setproduct(local.names, toset(var.workload_identity_users_pairs))
+  workload_identity_users_pairs_map_data = zipmap(
+    [for pair in local.name_workload_identity_users_pairs : "${pair[0]}-${pair[1]}"],
+    [for pair in local.name_workload_identity_users_pairs : {
+      name                      = pair[0]
+      kubernetes_serviceaccount = pair[1]
+    }]
+  )
 }
 
 # create service accounts
@@ -63,6 +71,24 @@ resource "google_project_iam_member" "project-roles" {
   )
 
   member = "serviceAccount:${google_service_account.service_accounts[each.value.name].email}"
+}
+
+resource "google_service_account_iam_member" "workload_identity_users" {
+  for_each = logal.workload_identity_users_pairs_map_data
+  service_account_id = element(
+    split(
+      "=>",
+      each.value.kubernetes_serviceaccount
+    ),
+    0,
+  )
+  role = "roles/iam.workloadIdentityUser"
+  member = format(
+    "serviceAccount:%s.svc.id.goog[%s/%s]",
+    "project_id",
+    google_service_account.service_accounts[each.value.name].email,
+    google_service_account.service_accounts[each.value.name].email,
+  )
 }
 
 # conditionally assign billing user role at the org level
